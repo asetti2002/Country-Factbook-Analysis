@@ -1,0 +1,129 @@
+---
+title: "DS202FinalProject"
+author: "Gauthaman Sethupathy, AKash Setti"
+date: "5/5/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(tidyverse)
+library(dplyr)
+```
+
+```{r}
+df <- read.csv("factbook.csv", sep = ";")
+```
+The original csv file was separated by ";", so we needed to include to sep statement while reading in the csv.
+```{r}
+final_columns <- c("Country", "Area.sq.km.", "Birth.rate.births.1000.population.","Death.rate.deaths.1000.population.", "Electricity...consumption.kWh.","Electricity...production.kWh.", "GDP...per.capita", "Highways.km.", "Internet.users", "Labor.force", "Life.expectancy.at.birth.years.", "Population", "Total.fertility.rate.children.born.woman.")
+df1 <- df[final_columns]
+```
+The original csv file has over 45 columns in and for many of the columns they results were mostly null values so removing null values would result in a smaller amount of observations. So we choose 12 columns we believed to have sufficient data and could lead to intersting analysis.
+```{r}
+df1[df1 == ""] <- NA
+df2 <- na.omit(df1)
+```
+We then removed the null values, first by changing the data frames blank spaces with an actual null value, we did this to simply use the na.omit function, which then removed all the rows with null values, leaving around 180 observations.
+
+```{r}
+df2 <- df2[-c(1),]
+df2 <- df2 %>% mutate(Area.sq.km. = as.numeric(Area.sq.km.))
+df2 <- df2 %>% mutate(Birth.rate.births.1000.population. = as.numeric(Birth.rate.births.1000.population.))
+df2 <- df2 %>% mutate(Death.rate.deaths.1000.population. = as.numeric(Death.rate.deaths.1000.population.))
+df2 <- df2 %>% mutate(Electricity...consumption.kWh. = as.numeric(Electricity...consumption.kWh.))
+df2 <- df2 %>% mutate(Electricity...production.kWh. = as.numeric(Electricity...production.kWh.))
+df2 <- df2 %>% mutate(GDP...per.capita = as.numeric(GDP...per.capita))
+df2 <- df2 %>% mutate(Highways.km. = as.numeric(Highways.km.))
+df2 <- df2 %>% mutate(Internet.users = as.numeric(Internet.users))
+df2 <- df2 %>% mutate(Labor.force = as.numeric(Labor.force))
+df2 <- df2 %>% mutate(Life.expectancy.at.birth.years. = as.numeric(Life.expectancy.at.birth.years.))
+df2 <- df2 %>% mutate(Population = as.numeric(Population))
+df2 <- df2 %>% mutate(Total.fertility.rate.children.born.woman. = as.numeric(Total.fertility.rate.children.born.woman.))
+head(df2)
+```
+The final step of the data cleaning was to delete the top column which was just a column of what data type the variable is. Now the data frame is ready for analysis and convert the variables to the correct type is they are wrong. 
+
+```{r}
+library(ggplot2)
+ggplot(df2, aes(x = Birth.rate.births.1000.population., y = Death.rate.deaths.1000.population.)) + geom_point() + geom_smooth() + xlab("Birth Rate") + ylab("Death Rate") + ggtitle("Birth Rate vs Death Rate per Country")
+
+ggplot(df2, aes(x = Birth.rate.births.1000.population., y = Death.rate.deaths.1000.population.)) + geom_point() + geom_text(label = df2$Country) + xlab("Birth Rate") + ylab("Death Rate") + ggtitle("Birth Rate vs Death Rate per Country")
+```
+We created a scatter plot of Birth Rate vs Death Rate and added a regression line to one of the graphs to show the curve that exists. The curve is not linear but has a alight drop as the birth rate increases and you can attribute this to more developed countries. As the curve goes further you see more countries with higher birth and death rates and this is associated with less developed countries. We then created a graph that lists the countries names as well, and the result are hard to read in the clutter(around th regression line) you can still see some African and middle eastern countries on the right side of the graph which are primarily the under developed countries, i.e. Somalia, Uganda, Malawi...
+```{r}
+df2 <- within(df2, {   
+  Population.Density <- NA # need to initialize variable
+  Population.Density[Population/Area.sq.km. < 11] <- "Low"
+  Population.Density[Population/Area.sq.km. >= 11 & Population/Area.sq.km. < 60] <- "Middle"
+  Population.Density[Population/Area.sq.km. >= 60] <- "High"
+   } )
+```
+We created a new variable "Population.Density" which takes the Population and divides that by the area of the country. I then used a scale based on an article in "Our World in Data", We can use this graph to create some graphs after splitting the countries into categories based on Population Density.
+
+```{r}
+ggplot(data=df2, aes(x=Population.Density, y= Life.expectancy.at.birth.years.)) +
+  geom_bar(stat="summary", fun = "mean", color = "black", fill = "red") + xlab("Population Density Group") + ylab("Life Expectancy") + ggtitle("Population Density Groups vs Life Expectancy")
+
+ggplot(data=df2, aes(x=Population.Density, y= Highways.km.)) +
+  geom_bar(stat="summary", fun = "mean", color = "black", fill = "green")+ xlab("Population Density Group") + ylab("Highways") + ggtitle("Population Density Groups vs Highways")
+```
+We used to variable to create two bar graphs, one looking at life expectancy and another at Highways. We wanted to see if a correlation exists between Population Density and whether a country is developed or not. The two variables Life expectancy and Highways are associated with more developed countries the higher the number.The life expectancy graph showed that the high population density graph has the highest life expectancy on average, followed by Middle then Low. If basing of just this, my assumption that lower population density countries are more developed is wrong, in fact the opposite of what I thought. When looking at the highways we see that Middle is the highest, followed by Low and High. Combining the two tells me that the population density is not alone a tell if a country is developed or not. In the High group alone there is countries such as Germany and France, but also some underdeveloped African countries. The graph itself for life expectancy is bimodal and for highways it is unimodal.
+
+```{r}
+ggplot(df2, aes(x = GDP...per.capita)) + geom_histogram(position="identity", colour="grey40",fill = "green", alpha=0.2, bins = 10) +
+    facet_grid(. ~ Population.Density) + xlab("GDP per Capita") + ylab("Count") + ggtitle("GDP per Capita Split by Population Density")
+```
+Continuing with the analysis of the Population Density and its relation to countries development. GDP per capita is a good indicator of a countries development. GDP per capita measures the economic output of a nation per person. It seeks to determine the prosperity of a nation by economic growth per person in that nation. So nations with higher GDP per capitas are considered more developed. After splitting the results we can analyze if the population density has an effect but as you can see all three categories have similar shapes and no clear pattern emerges to show that the population density relates to GDP per capita or a countries development. All the graphs are unimodal and only the High population density has one outlier. All the graphs also seem to be skewed right.
+
+```{r}
+df2 <- within(df2, {   
+  Energy.use.per.Person <- NA # need to initialize variable
+  Energy.use.per.Person[Electricity...consumption.kWh./Population < 2500] <- "Low"
+  Energy.use.per.Person[Electricity...consumption.kWh./Population >= 2500 & Electricity...consumption.kWh./Population < 7500] <- "Middle"
+  Energy.use.per.Person[Electricity...consumption.kWh./Population >= 7500] <- "High"
+   } )
+
+df2 <- within(df2, {   
+  Energy.Production.per.Person <- NA # need to initialize variable
+  Energy.Production.per.Person[Electricity...production.kWh./Population < 2500] <- "Low"
+  Energy.Production.per.Person[Electricity...production.kWh./Population >= 2500 & Electricity...production.kWh./Population < 10000] <- "Middle"
+  Energy.Production.per.Person[Electricity...production.kWh./Population >= 7500] <- "High"
+   } )
+```
+
+```{r}
+library(ggmosaic)
+ggplot(data = df2)  +
+  geom_mosaic(aes(x = product(Energy.use.per.Person), fill=Energy.Production.per.Person)) +
+  theme_mosaic() + xlab("Energy Use Per Person") + ylab("Engery Production per Person") + ggtitle("Mosiac Plot of Energy Production vs Consumption")
+```
+We wanted to see if there was a large difference in countries production and consumption, so we created two variables that split the variables into similar to the population density. Using the same website "Out World in Data" I was able to find another scale but they made it based off consumption and production per person, so we divided the two variables by the population of the country. The mosiac plot shows that for the most part each category consumes the same as the produces, but each category has some that produce more or less than the consumption found. in each plot the category is the largest in the mosicac plot, which makes sense in the context of the problem. There is some difference in the countries production and consumption.
+
+```{r}
+ggplot(df2,aes(x=Population.Density, y=Total.fertility.rate.children.born.woman., fill=Population.Density)) + geom_boxplot() + xlab("Population Density") + ylab("Total Fertility Rate of Women") + ggtitle("Population Density vs Total Fertility Rate")
+```
+
+
+We wanted to see the fertility rate of women with the population density. I was able to make this plot above using ggplot and the data from the same website "Out World in Data". Originally, we wanted to see the analysis for fun, but we were shocked by the results. We did not think that there was going to be a correlation with the density and the fertility. However, we can see since the fertility rate is usually higher for the population density being lower there is a correlation. We can see from the box plot above that the median fertility rate is higher whenever the population density is the lowest. We also can see that the range is relativity the same for all of the different categories of the population density. Also the IQR is much higher for the low and high densities rather than the low density.
+
+
+
+```{r, echo=TRUE}
+ggplot(df2,aes(x=Internet.users, y=Electricity...consumption.kWh., color=Energy.use.per.Person)) + geom_line() + xlab("Internet Users") + ylab("Energy Consumption") + ggtitle("Internet Users vs Energy Consumption") + facet_wrap(. ~ Energy.use.per.Person)
+```
+
+
+We wanted to see the relationship between the number of internet users and the energy consumption. I was able to make this plot above using ggplot and the data from the same website "Out World in Data".Before developing the graphs we did assume that the amount of energy consumption increases as the number of internet users also increase. As expected overall the energy consumption does increase as the amount of internet users increase as well. We also had a faucet wrap of the energy use per person. As mentioned before the variable Energy Use Per Person There is some activity in the energy use per person when they are in the middle category, but it is pretty standard increase. 
+
+
+Conclusion:
+
+This data set was very interesting to work with. The data frame encompasses information regarding different countries. During this project we developed different graphs to test the different relationships between variables. For some of the graphs it required us to create our own categorical variables to help create some new analysis. We developed graphs such as scatter plot, histogram, bar graph, mosaic plot, box plot, and line plot. Some relationships met our expectations while some others were shocking. The visualization aspect allowed us to see the correlation/relationship in a good manner.
+
+
+
+
