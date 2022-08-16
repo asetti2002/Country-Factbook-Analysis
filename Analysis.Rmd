@@ -1,7 +1,6 @@
 ---
-title: "DS202FinalProject"
-author: "Gauthaman Sethupathy, AKash Setti"
-date: "5/5/2022"
+title: "Country Analysis"
+author: "Gauthaman Sethupathy, Akash Setti"
 output: html_document
 ---
 
